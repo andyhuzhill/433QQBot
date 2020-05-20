@@ -5,6 +5,8 @@ import setting
 
 logger = logging.getLogger('QQBot')
 
+from mirai import Plain, Image
+
 
 def get_message() -> list:
     """获取最新的微博内容"""
@@ -40,33 +42,28 @@ def get_message() -> list:
                 f'{setting.read_config("system", "nickname")}'
                 f"刚刚发了一条微博: {text}\n"
             )
-            message = [
-                {
-                    'type': 'text',
-                    'data': {'text': start_text}
-                },
-            ]
+            message = Plain(text=start_text)
+            message_list.append(message)
             if card['mblog'].get('pics'):
-                message.append({
-                    'type': 'image',
-                    'data': {'file': card['mblog']['pics'][0]['url']}
-                })
+                message = Image(
+                    card['mblog']['pics'][0]['url']
+                )
                 message.append({
                     'type': 'text',
                     'data': {'text': f"一共有{len(card['mblog']['pics'])}张图哦\n"}
                 })
             message.append({
-                    'type': 'text',
-                    'data': {'text': f"传送门: {card['scheme']}"}
+                'type': 'text',
+                'data': {'text': f"传送门: {card['scheme']}"}
             })
         else:
             raw_text = re.compile(r'<[^>]+>', re.S)\
                          .sub('', card['mblog']['retweeted_status']['text'])
-            message = (
+            message = Plain(
                 f'{setting.read_config("system", "nickname")}'
                 f"刚刚转发了一条微博: {text}\n原微博: {raw_text}"
                 f"传送门: {card['scheme']}"
             )
-        message_list.append(message)
+            message_list.append(message)
     setting.write_config("weibo", "last_weibo", str(max_id))
     return message_list

@@ -6,6 +6,8 @@ import requests
 
 import setting
 
+from mirai import *
+
 logger = logging.getLogger('QQBot')
 
 
@@ -73,28 +75,32 @@ def get_messages() -> list:
     # 处理消息列表
     message_list = list()
     last_time = int(setting.read_config('pocket48', 'message_time'))
+
     for data in response['content']['message']:
         message = ''
         if data['msgTime'] < last_time:
             break
+
         message_time = time.strftime(
             '%Y-%m-%d %H:%M:%S',
             time.localtime(int(data['msgTime']/1000))
         )
+
         message_ext = json.loads(data['extInfo'])
         if data['msgType'] == 'TEXT':
             # 口袋48好像会出现换行直接打到行首的特殊情况
             if 'text' in message_ext:
                 message_ext['text'] = message_ext['text'].replace('\r', '\n')
+
             if message_ext['messageType'] == 'TEXT':
-                message = (
+                message = Plain(
                     f'{message_ext["user"]["nickName"]}: '
                     f'{message_ext["text"]}\n'
                     f'{message_time}'
                 )
                 logger.info('收到一条文字消息: %s', message_ext["text"])
             elif message_ext['messageType'] == 'REPLY':
-                message = (
+                message = Plain(
                     f'{message_ext["replyName"]}: '
                     f'{message_ext["replyText"]}\n'
                     f'{message_ext["user"]["nickName"]}: '
@@ -105,14 +111,14 @@ def get_messages() -> list:
                             message_ext["text"],
                             message_ext["replyText"])
             elif message_ext['messageType'] == 'VOTE':
-                message = (
+                message = Plain(
                     f'{message_ext["user"]["nickName"]}发起了投票: '
                     f'{message_ext["text"]}\n'
                     f'{message_time}'
                 )
                 logger.info('收到一条投票消息: %s', message_ext["text"])
             elif message_ext['messageType'] == 'FLIPCARD':
-                message = (
+                message = Plain(
                     f'{message_ext["user"]["nickName"]}: '
                     f'{message_ext["answer"]}\n'
                     f'问题内容: {message_ext["question"]}\n'
@@ -124,24 +130,26 @@ def get_messages() -> list:
             elif message_ext['messageType'] == 'LIVEPUSH':
                 idol_nickname = setting.read_config("system", "nickname")
                 # playStreamPath = response['content']['playStreamPath']
-                message = [
-                    {
-                        'type': 'text',
-                        'data': {'text': (
-                            f'{idol_nickname}开直播啦: '
-                            f'{message_ext["liveTitle"]}\n'
-                            '封面: '
-                        )}
-                    },
-                    {
-                        'type': 'image',
-                        'data': {'file': f'{message_ext["liveCover"]}'}
-                    },
-                    {
-                        'type': 'text',
-                        'data': {'text': '快去口袋48观看吧! '}
-                    },
-                ]
+                # message = [
+                #     {
+                #         'type': 'text',
+                #         'data': {'text': (
+                #             f'{idol_nickname}开直播啦: '
+                #             f'{message_ext["liveTitle"]}\n'
+                #             '封面: '
+                #         )}
+                #     },
+                #     {
+                #         'type': 'image',
+                #         'data': {'file': f'{message_ext["liveCover"]}'}
+                #     },
+                #     {
+                #         'type': 'text',
+                #         'data': {'text': '快去口袋48观看吧! '}
+                #     },
+                # ]
+                message = Plain(f'{idol_nickname}开直播啦: '
+                                f'{message_ext["liveTitle"]}\n')
                 logger.info('收到一条直播消息,id=%s', str(message_ext["liveId"]))
         elif data['msgType'] == 'IMAGE':
             bodys = json.loads(data['bodys'])
@@ -159,6 +167,7 @@ def get_messages() -> list:
                     'data': {'text': f'{message_time}'}
                 },
             ]
+            # message =
         elif data['msgType'] == 'AUDIO' or data['msgType'] == 'VIDEO':
             bodys = json.loads(data['bodys'])
             message = [
@@ -176,12 +185,13 @@ def get_messages() -> list:
                 },
             ]
         elif data['msgType'] == 'EXPRESS':
-            message = (
+            message = Plain(
                 f'{message_ext["user"]["nickName"]}: 发送了表情\n'
                 f'{message_time}'
             )
         else:
             logger.error('发现了未知格式的信息: %s', json.dumps(message_ext))
+
         message_list.append(message)
     logger.info('口袋48信息处理完成, 共收取到%d条信息', len(message_list))
     setting.write_config('pocket48', 'message_time',

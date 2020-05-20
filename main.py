@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import time
 import logging
 import logging.config
 
-from cqhttp import CQHttp
+# from cqhttp import CQHttp
+from mirai import Mirai, Plain, At
+import asyncio
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -13,8 +19,13 @@ import pocket48
 import setting
 import weibo
 
+qq = 744428720
+authKey = '1234567890'  # 字段 authKey 的值
+# httpapi所在主机的地址端口,如果 setting.yml 文件里字段 "enableWebsocket" 的值为 "true" 则需要将 "/" 换成 "/ws", 否则将接收不到消息.
+mirai_api_http_locate = 'localhost:8080/ws'
+
 logger = logging.getLogger('QQBot')
-bot = CQHttp(api_root='http://127.0.0.1:5700/')
+bot = Mirai(f"mirai://{mirai_api_http_locate}?authKey={authKey}&qq={qq}")
 sched = BackgroundScheduler()
 engine = create_engine(setting.db_link())
 global pk_mission_started
@@ -32,16 +43,15 @@ def send_message(message_list: list):
     """向配置文件当中指定的群群发消息"""
     for message in message_list:
         for grp_id in setting.group_id():
-            bot.send_group_msg_async(group_id=grp_id,
-                                     message=message,
-                                     auto_escape=False)
+            bot.sendGroupMessage(grp_id,
+                                 message)
             time.sleep(0.5)
 
 
 # 发送集资信息
 def send_raise_message(force=False):
     """发送集资消息
-    ### Args:
+    # Args:
     ``force``: 是否无视项目更新情况, 强行检索搜索项目.\n
     """
     try:
@@ -213,11 +223,11 @@ def handle_group_increase(context):
     """加群发送欢迎消息"""
     if context['group_id'] in setting.group_id():
         welcome = [
-            {'type': 'text', 'data': {'text': '欢迎'}},
-            {'type': 'at', 'data': {'qq': str(context['user_id'])}},
-            {'type': 'text', 'data': {'text': f'加入本群\n{setting.welcome()}'}}
+            Plain('欢迎'),
+            At(target=context['user_id']),
+            Plain(text=f'加入本群\n{setting.welcome()}'),
         ]
-        bot.send(context, message=welcome, auto_escape=True)
+        bot.sendGroupMessage(context['group_id'], welcome)
 
 
 # TODO:加群验证处理
@@ -289,4 +299,5 @@ if __name__ == '__main__':
     # 开始任务执行
     sched.start()
     # Docker虚拟网关地址 172.17.0.1
-    bot.run(host='172.17.0.1', port=8080)
+    # bot.run(host='172.17.0.1', port=8080)
+    bot.run()
