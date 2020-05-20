@@ -20,7 +20,7 @@ import setting
 import weibo
 
 qq = 744428720
-authKey = '1234567890'  # 字段 authKey 的值
+authKey = '1234509876'  # 字段 authKey 的值
 # httpapi所在主机的地址端口,如果 setting.yml 文件里字段 "enableWebsocket" 的值为 "true" 则需要将 "/" 换成 "/ws", 否则将接收不到消息.
 mirai_api_http_locate = 'localhost:8080/ws'
 
